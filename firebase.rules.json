@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "farm": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}

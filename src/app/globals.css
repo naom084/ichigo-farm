@@ -1,0 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --green-deep: #1e3d1a;
+  --green-mid: #3d7a35;
+  --green-light: #7bbf6a;
+  --strawberry: #e8384f;
+  --cream: #f7f4ee;
+}
+
+* { box-sizing: border-box; }
+body {
+  font-family: "Noto Sans JP", sans-serif;
+  background: var(--cream);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.font-mono { font-family: "DM Mono", monospace; }
