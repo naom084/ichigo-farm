@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app'
 import { getDatabase } from 'firebase/database'
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,6 +14,39 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 export const db = getDatabase(app)
+
+/**
+ * 匿名認証を完了させる Promise を返す。
+ * Firebase Realtime Database のルールで auth!=null を要求するため、
+ * 読み書きする前に必ずこの Promise を await する。
+ */
+const auth = getAuth(app)
+let authReadyPromise: Promise<void> | null = null
+export function ensureAuth(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve()
+  if (authReadyPromise) return authReadyPromise
+  authReadyPromise = new Promise<void>((resolve, reject) => {
+    const unsub = onAuthStateChanged(
+      auth,
+      (user) => {
+        if (user) {
+          unsub()
+          resolve()
+        } else {
+          signInAnonymously(auth).catch((e) => {
+            unsub()
+            reject(e)
+          })
+        }
+      },
+      (e) => {
+        unsub()
+        reject(e)
+      }
+    )
+  })
+  return authReadyPromise
+}
 
 export type BedStatus = 'todo' | 'partial' | 'done'
 export type BedSide = 'left' | 'right'

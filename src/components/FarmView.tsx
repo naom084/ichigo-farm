@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { ref, onValue, set, remove } from 'firebase/database'
-import { db, HOUSES, BedRecord, BedStatus, BedSide, SideRecord, FarmData } from '@/lib/firebase'
+import { db, ensureAuth, HOUSES, BedRecord, BedStatus, BedSide, SideRecord, FarmData } from '@/lib/firebase'
 import BedModal from './BedModal'
 
 interface Props {
@@ -37,16 +37,27 @@ export default function FarmView({ workerName, onChangeName }: Props) {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   useEffect(() => {
-    const farmRef = ref(db, 'farm')
-    const unsub = onValue(farmRef, (snap) => {
-      setFarmData(snap.val() ?? {})
-      setConnected(true)
-    }, () => setConnected(false))
-    return () => unsub()
+    let unsub: (() => void) | null = null
+    let cancelled = false
+    ensureAuth()
+      .then(() => {
+        if (cancelled) return
+        const farmRef = ref(db, 'farm')
+        unsub = onValue(farmRef, (snap) => {
+          setFarmData(snap.val() ?? {})
+          setConnected(true)
+        }, () => setConnected(false))
+      })
+      .catch(() => setConnected(false))
+    return () => {
+      cancelled = true
+      if (unsub) unsub()
+    }
   }, [])
 
   const handleStatusChange = useCallback(async (status: BedStatus) => {
     if (!modal) return
+    await ensureAuth()
     const { houseId, bedNum, side } = modal
     const sideRef = ref(db, `farm/${houseId}/bed_${bedNum}/${side}`)
     const now = new Date().toISOString()
@@ -64,6 +75,7 @@ export default function FarmView({ workerName, onChangeName }: Props) {
   }, [modal, workerName, farmData])
 
   const handleStart = useCallback(async (houseId: string, bedNum: number, side: BedSide) => {
+    await ensureAuth()
     const sideRef = ref(db, `farm/${houseId}/bed_${bedNum}/${side}`)
     const now = new Date().toISOString()
     const existing = farmData[houseId]?.[`bed_${bedNum}`]?.[side]
@@ -81,12 +93,14 @@ export default function FarmView({ workerName, onChangeName }: Props) {
 
   const handleClear = useCallback(async () => {
     if (!modal) return
+    await ensureAuth()
     const { houseId, bedNum, side } = modal
     await remove(ref(db, `farm/${houseId}/bed_${bedNum}/${side}`))
     setModal(null)
   }, [modal])
 
   const handleReset = useCallback(async () => {
+    await ensureAuth()
     await remove(ref(db, 'farm'))
     setShowResetConfirm(false)
   }, [])
