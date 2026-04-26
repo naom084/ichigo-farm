@@ -1,7 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import FarmView from '@/components/FarmView'
+import dynamic from 'next/dynamic'
 import NameEntry from '@/components/NameEntry'
+
+const FarmView = dynamic(() => import('@/components/FarmView'), { ssr: false })
 
 const NAME_KEY = 'ichigo_worker_name'
 
